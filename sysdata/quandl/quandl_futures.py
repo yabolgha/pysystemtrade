@@ -6,31 +6,13 @@ Get data from quandl for futures
 from sysdata.futures.contracts import futuresContract
 from sysdata.futures.futures_per_contract_prices import futuresContractPriceData, futuresContractPrices
 from syscore.fileutils import get_filename_for_package
-import yaml
+from sysdata.quandl.quandl_utils import load_private_key
 
 import quandl
 import pandas as pd
-import  datetime
+
 
 QUANDL_FUTURES_CONFIG_FILE = get_filename_for_package("sysdata.quandl.QuandlFuturesConfig.csv")
-QUANDL_PRIVATE_KEY_FILE = get_filename_for_package("private.private_config.yaml")
-
-def load_private_key(key_file =QUANDL_PRIVATE_KEY_FILE , dict_key = 'quandl_key'):
-    """
-    Tries to load a private key
-
-    :return: key
-    """
-
-    try:
-        with open(key_file) as file_to_parse:
-            yaml_dict = yaml.load(file_to_parse)
-        key = yaml_dict[dict_key]
-    except:
-        # no private key
-        key = None
-
-    return key
 
 
 quandl.ApiConfig.api_key = load_private_key()
@@ -96,6 +78,13 @@ class quandlFuturesConfiguration(object):
 
         return "%d" % start_date
 
+    def get_quandl_dividing_factor(self, instrument_code):
+
+        config = self.get_instrument_config(instrument_code)
+        factor = config.FACTOR
+
+        return float(factor)
+
 
 USE_DEFAULT = object()
 
@@ -152,7 +141,9 @@ class _quandlFuturesContract(futuresContract):
 
         return self._quandl_instrument_data.get_start_date(self.instrument_code)
 
+    def get_dividing_factor(self):
 
+        return self._quandl_instrument_data.get_quandl_dividing_factor(self.instrument_code)
 
 class quandlFuturesContractPriceData(futuresContractPriceData):
     """
@@ -191,8 +182,8 @@ class quandlFuturesContractPriceData(futuresContractPriceData):
 
         try:
             contract_data = quandl.get(quandl_contract.quandl_identifier())
-        except:
-            self.log.warn("Can't get QUANDL data for %s" % quandl_contract.quandl_identifier())
+        except Exception as exception:
+            self.log.warn("Can't get QUANDL data for %s error %s" % (quandl_contract.quandl_identifier(), exception))
             return futuresContractPrices.create_empty()
 
         try:
@@ -201,6 +192,10 @@ class quandlFuturesContractPriceData(futuresContractPriceData):
             self.log.error(
                 "Quandl API error: data fields are not as expected %s" % ",".join(list(contract_data.columns)))
             return futuresContractPrices.create_empty()
+
+        # apply multiplier
+        factor = quandl_contract.get_dividing_factor()
+        data = data / factor
 
         return data
 
@@ -219,8 +214,22 @@ class quandlFuturesContractPrices(futuresContractPrices):
                                          HIGH=contract_data.High,
                                          LOW=contract_data.Low,
                                          SETTLE=contract_data.Settle))
-        except:
-            raise Exception(
-                "Quandl API error: data fields are not as expected %s" % ",".join(list(contract_data.columns)))
+        except AttributeError:
+            try:
+                new_data = pd.DataFrame(dict(OPEN=contract_data.Open,
+                                         CLOSE=contract_data.Close,
+                                         HIGH=contract_data.High,
+                                         LOW=contract_data.Low,
+                                         SETTLE=contract_data.Settle))
+            except AttributeError:
+                try:
+                    new_data = pd.DataFrame(dict(OPEN=contract_data.Open,
+                                                 CLOSE=contract_data.Settle,
+                                                 HIGH=contract_data.High,
+                                                 LOW=contract_data.Low,
+                                                 SETTLE=contract_data.Settle))
+                except:
+                    raise Exception(
+                        "Quandl API error: data fields %s are not as expected" % ",".join(list(contract_data.columns)))
 
         super().__init__(new_data)

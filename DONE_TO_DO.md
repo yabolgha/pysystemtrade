@@ -1,5 +1,22 @@
 # Release notes
 
+## Version 0.18.2
+Added methods to read weight data from csv files
+Put generalised non linear mapping into forecast combination
+Added flag option to use process pools for parallel processing - but not actually used yet
+Cleaned up setup.py file now finds data files recursively
+Fixed bug in getting asset class data from csv config files
+
+## Version 0.18.1
+Finished populating configuration files for Quandl and roll configuration.
+Debugged futures.md documentation file.
+
+## Version 0.18
+See [futures documentation](/docs/futures.md) for more details.
+New data sources: Quandl. Data storage in mongodb and arctic is now supported.
+Back-adjustment is possible and can be done 'on the fly' or from scratch with new data. 
+Further refactoring of sim data objects to support the above.
+
 ## Version 0.17
 Massive refactoring of sim data objects, to support alternative data sources and backadjusting
 
@@ -263,16 +280,20 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 # Bugs to fix
 
-* none are known
+* If you use a non USD currency then you get a flat spot earlier in the account curve. It should be NAN
+
+# Features to add -next release
+
+* Check does 'cheap rules' not work when fixed instrument rules, know about weight==0
+* Refactor yaml code to drop pyyaml (no long supported)
+* Add risk overlay
 
 # Features to add - later releases
 
 * Simulation:
-   
-  * stitch futures contracts 
-  * add new data from unstitched contracts (with explanatory post, include explanation for Nth contract stitching)
+
+  * Parallel processing of - getting data, trading rules, p&l calculation, optimisation
   * Create live config from a system object (Put final value of estimates into a yaml file) 
-  * database data
   * Exogenous risk model
   * check systems have correct attributes; check turnover, minimum size, right forecast scalars (distribution across instruments) etc
 

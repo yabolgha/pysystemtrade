@@ -82,7 +82,7 @@ class ForecastScaleCap(SystemStage):
         instruments_with_rule=[instrument_code for instrument_code in instrument_list
                         if rule_variation_name in self._get_trading_rule_list(instrument_code)]
 
-        if len(instruments_with_rule)==1:
+        if len(instruments_with_rule) == 0:
             return instrument_list
         else:
             return instruments_with_rule
@@ -225,7 +225,6 @@ class ForecastScaleCap(SystemStage):
             (rule_variation_name, ", ".join(instrument_list)),
             rule_variation_name=rule_variation_name)
 
-        # Get forecasts for each instrument
         forecast_list = [
             self.get_raw_forecast(instrument_code, rule_variation_name)
             for instrument_code in instrument_list

@@ -33,7 +33,12 @@ class csvFuturesAdjustedPricesData(futuresAdjustedPricesData):
     def _get_adjusted_prices_without_checking(self, instrument_code):
         filename = self._filename_given_instrument_code(instrument_code)
 
-        instrpricedata = pd_readcsv(filename)
+        try:
+            instrpricedata = pd_readcsv(filename)
+        except OSError:
+            self.log.warning("Can't find adjusted price file %s" % filename)
+            return futuresAdjustedPrices.create_empty()
+
         instrpricedata.columns = ["price"]
         instrpricedata = instrpricedata.groupby(level=0).last()
         instrpricedata = pd.Series(instrpricedata.iloc[:, 0])
@@ -42,7 +47,7 @@ class csvFuturesAdjustedPricesData(futuresAdjustedPricesData):
 
         return instrpricedata
 
-    def _delete_adjusted_prices_without_any_warning_be_careful(instrument_code):
+    def _delete_adjusted_prices_without_any_warning_be_careful(self, instrument_code):
         raise NotImplementedError("You can't delete adjusted prices stored as a csv - Add to overwrite existing or delete file manually")
 
     def _add_adjusted_prices_without_checking_for_existing_entry(self, instrument_code, adjusted_price_data):

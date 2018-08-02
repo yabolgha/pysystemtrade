@@ -8,13 +8,17 @@ This connection won't fail if mongo missing, but will hang
 """
 
 DEFAULT_MONGO_HOST = 'localhost'
+DEFAULT_DB = 'production'
 
 class articConnection(object):
     """
-    All of our mongo connections use this class (for static data, not time series which goes via artic)
+    All of our ARCTIC mongo connections use this class (not static data which goes directly via mongo DB)
 
     """
     def __init__(self, database_name, collection_name, host = DEFAULT_MONGO_HOST):
+
+        if database_name is None:
+            database_name = DEFAULT_DB
 
         store = Arctic(host)
         library_name = database_name+"."+collection_name
