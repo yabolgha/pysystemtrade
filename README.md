@@ -9,10 +9,6 @@ Rob Carver
 
 Version 0.18.2
 
-
-20180503
-
-
 ## Release notes
 
 See [DONE_TO_DO](DONE_TO_DO.md) for release notes, and future plans.
@@ -70,7 +66,7 @@ This is an open source project, designed for people who are already comfortable 
 - Confusing error messages
 - Missing or misleading documentation
 - Suggestions for extra features
- 
+
 However I can't guarantee that I will reply immediately, or at all. If you need that level of support then you are better off with another project. The most efficient way of doing this is by [opening an issue on github](https://github.com/robcarver17/pysystemtrade/issues/new). If you discover a bug please include:
 
 - The full script that produces the error, including all `import` statements, or if it's a standard example file a pointer to the file. Ideally this should be a "minimal example" - the shortest possible script that produces the problem.
@@ -91,4 +87,3 @@ GNU v3
 ( See [LICENSE](LICENSE) )
 
 Absolutely no warranty is implied with this product. Use at your own risk. I provide no guarantee that it will be profitable, or that it won't lose all your money very quickly, or delete every file on your computer (by the way: it's not *supposed* to do that. Just in case you thought it was.).
-
