@@ -197,7 +197,7 @@ For now let's start with the simplest possible system, one which contains only a
 
 ```python
 from sysdata.csv.csv_sim_futures_data import csvFuturesSimData
-data=csvFuturesData()
+data=csvFuturesSimData()
 
 from systems.provided.example.rules import ewmac_forecast_with_defaults as ewmac
 ```

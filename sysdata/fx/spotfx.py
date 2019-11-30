@@ -56,12 +56,34 @@ class fxPricesData(baseData):
         raise NotImplementedError(USE_CHILD_CLASS_ERROR)
 
     def get_fx_prices(self, code):
+        """
+        Get a historical series of FX prices
+
+        :param code: currency code, in the form EURUSD
+        :return: fxData object
+        """
         if self.is_code_in_data(code):
             return self._get_fx_prices_without_checking(code)
         else:
             return fxPrices.create_empty()
 
+    def get_current_fx_price(self, code):
+        """
+        Get a snapshot of the latest FX price for a currency
+
+        :param code: str
+        :return: float
+        """
+        if self.is_code_in_data(code):
+            return self._get_current_fx_price_without_checking()
+        else:
+            return np.nan
+
+
     def _get_fx_prices_without_checking(self, code):
+        raise NotImplementedError(USE_CHILD_CLASS_ERROR)
+
+    def _get_current_fx_price_without_checking(self, code):
         raise NotImplementedError(USE_CHILD_CLASS_ERROR)
 
     def __getitem__(self, code):
@@ -105,3 +127,30 @@ class fxPricesData(baseData):
     def _add_fx_prices_without_checking_for_existing_entry(self, code, fx_price_data):
         raise NotImplementedError(USE_CHILD_CLASS_ERROR)
 
+    def update_fx_prices(self, code, new_fx_prices):
+        """
+        Checks existing data, adds any new data with a timestamp greater than the existing data
+
+        :param code: FX code
+        :param new_fx_prices: fxPrices object
+        :return: int, number of rows added
+        """
+        self.log.label(fx_code=code)
+
+        old_fx_prices = self.get_fx_prices(code)
+        last_date_in_old_price = old_fx_prices.index[-1]
+
+        new_fx_prices = new_fx_prices[new_fx_prices.index>last_date_in_old_price]
+
+        if len(new_fx_prices)==0:
+            self.log.msg("No additional data since %s for %s" % (str(last_date_in_old_price), code))
+            return 0
+
+        fx_prices = pd.concat([old_fx_prices, new_fx_prices], axis=0)
+        fx_prices = fx_prices.sort_index()
+
+        # remove duplicates (shouldn't be any, but...)
+        fx_prices = fx_prices[~fx_prices.index.duplicated(keep='first')]
+
+        # write sum of both prices
+        self.add_fx_prices(code, fx_prices, ignore_duplication=True)

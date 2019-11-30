@@ -7,8 +7,15 @@ Rob Carver
 [http://qoppac.blogspot.co.uk/p/pysystemtrade.html](http://qoppac.blogspot.co.uk/p/pysystemtrade.html)
 
 
-Version 0.18.2
+Version 0.23.0
 
+<<<<<<< HEAD
+=======
+
+20191112
+
+
+>>>>>>> upstream/master
 ## Release notes
 
 See [DONE_TO_DO](DONE_TO_DO.md) for release notes, and future plans.
@@ -22,7 +29,7 @@ For a longer explanation of the motivation and point of this project see my [blo
 
 Currently pysystemtrade can do the following:
 - Backtesting enviroment that will work "out of the box" for chapter 15 of my book ["Systematic Trading"](systematicmoney.org/systematic-trading)
-- Implement all the optimisation and system design principles in the book.
+- Implement all the optimisation and system design principles in the book and on my website.
 
 *Eventually* pysystemtrade will also include the following:
 
@@ -86,4 +93,10 @@ A series of examples using pysystemtrade for my blog posts can be found [here](h
 GNU v3
 ( See [LICENSE](LICENSE) )
 
+<<<<<<< HEAD
 Absolutely no warranty is implied with this product. Use at your own risk. I provide no guarantee that it will be profitable, or that it won't lose all your money very quickly, or delete every file on your computer (by the way: it's not *supposed* to do that. Just in case you thought it was.).
+=======
+Absolutely no warranty is implied with this product. Use at your own risk. I provide no guarantee that it will be profitable, or that it won't lose all your money very quickly, or delete every file on your computer (by the way: it's not *supposed* to do that. Just in case you thought it was.). All financial trading offers the possibility of loss. Leveraged trading, such as futures trading, may result in you losing all your money, and still owing more. Backtested results are no guarantee of future performance. I can take no responsibility for any losses caused by live trading using pysystemtrade. Use at your own risk. I am not registered or authorised by any financial regulator. 
+
+
+>>>>>>> upstream/master

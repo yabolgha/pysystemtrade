@@ -2,6 +2,7 @@ from bisect import bisect_left, bisect_right
 
 import datetime
 import pandas as pd
+from copy import copy
 
 from syscore.dateutils import contract_month_from_number, month_from_contract_letter
 from sysdata.futures.contract_dates_and_expiries import contractDate, from_contract_numbers_to_contract_string, NO_DAY_PASSED, NO_EXPIRY_DATE_PASSED
@@ -342,19 +343,25 @@ class rollParameters(object):
 
     def _approx_first_contractDate_at_date(self, reference_date, rollcycle_name):
         """
-        What contract would be pricing or holding on first_date?
+        What contract would be pricing or holding on reference_date?
 
-        Returns a contractDate object with a date after first_date, taking into account RollOffsetDays
+        Returns a contractDate object with a date after reference_date, taking into account RollOffsetDays
           as well as the priced roll cycle.
 
-        :param reference_date:
+        :param reference_date: datetime
         :return: contractDate object
         """
 
         # first held contract after current date
         roll_cycle = getattr(self, rollcycle_name)
 
-        adjusted_date = reference_date + pd.DateOffset(days = -self.roll_offset_day + self.approx_expiry_offset)
+        # For example suppose the reference date is 20190101, and the expiry offset is 15
+        #    plus the roll offset is -90 (we want to roll ~ 3 months in advance of the expiry)
+        #    The contract expires on the 16th of each month
+        #    We want to roll 90 days ahead of that
+        #    With thanks to https://github.com/tgibson11 for helping me get this right
+
+        adjusted_date = reference_date - pd.DateOffset(days = (self.roll_offset_day + self.approx_expiry_offset))
 
         relevant_year_int, relevant_month_int = roll_cycle.yearmonth_inrollcycle_after_date(adjusted_date)
 
@@ -500,6 +507,22 @@ class contractDateWithRollParameters(contractDate):
     def want_to_roll(self):
         return self.expiry_date+ datetime.timedelta(days = self.roll_parameters.roll_offset_day)
 
+    def get_unexpired_contracts_from_now_to_contract_date(self):
+        """
+        Returns all the unexpired contracts between now and the contract date
+
+        :return: list of contractDate
+        """
+
+        datetime_now = datetime.datetime.now()
+        contract_dates = []
+        current_contract = copy(self)
+
+        while current_contract.as_date() >= datetime_now:
+            contract_dates.append(current_contract)
+            current_contract = current_contract.previous_priced_contract()
+
+        return contract_dates
 
 USE_CHILD_CLASS_ROLL_PARAMS_ERROR = "You need to use a child class of rollParametersData"
 

@@ -6,11 +6,11 @@ Read and write data from mongodb for individual futures contracts
 from sysdata.arctic.arctic_connection import articConnection
 from sysdata.futures.futures_per_contract_prices import futuresContractPriceData, futuresContractPrices
 from sysdata.futures.contracts import futuresContract
+from syslogdiag.log import logtoscreen
 
 import pandas as pd
 
 CONTRACT_COLLECTION = 'futures_contract_prices'
-DEFAULT_DB = 'production'
 
 
 class arcticFuturesContractPriceData(futuresContractPriceData):
@@ -18,11 +18,11 @@ class arcticFuturesContractPriceData(futuresContractPriceData):
     Class to read / write futures price data to and from arctic
     """
 
-    def __init__(self, database_name= DEFAULT_DB):
+    def __init__(self,  mongo_db=None, log=logtoscreen("arcticFuturesContractPriceData")):
 
-        super().__init__()
+        super().__init__(log=log)
 
-        self._arctic = articConnection(database_name, collection_name=CONTRACT_COLLECTION)
+        self._arctic = articConnection(CONTRACT_COLLECTION, mongo_db=mongo_db)
 
         self.name = "simData connection for individual futures contracts prices, arctic %s/%s @ %s " % (
             self._arctic.database_name, self._arctic.collection_name, self._arctic.host)
@@ -69,7 +69,7 @@ class arcticFuturesContractPriceData(futuresContractPriceData):
         ## What if not found? CHECK
 
         ## Returns a data frame which should have the right format
-        data = item.data
+        data = pd.DataFrame(item.data)
 
         return futuresContractPrices(data)
 

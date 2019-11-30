@@ -1,4 +1,12 @@
-This document is specifically about *futures data*. It is broken into three sections. The first, [A futures data workflow](#futures_data_workflow), gives an overview of how data is typically processed. It describes how you would get some data from quandl, store it, and create back-adjusted prices. The next section [Storing futures data](#storing_futures_data) then describes in detail each of the components of the API for storing futures data. In the third and final section [simData objects](#simData_objects) you will see how we hook together individual data components to create a `simData` object that is used by the main simulation system.
+This document is specifically about storing and processsing *futures data*. 
+
+Related documents:
+
+- [Using pysystemtrade as a production trading environment](/docs/production.md)
+- [Main user guide](/docs/userguide.md)
+- [Connecting pysystemtrade to interactive brokers](/docs/IB.md)
+
+It is broken into three sections. The first, [A futures data workflow](#futures_data_workflow), gives an overview of how data is typically processed. It describes how you would get some data from quandl, store it, and create back-adjusted prices. The next section [Storing futures data](#storing_futures_data) then describes in detail each of the components of the API for storing futures data. In the third and final section [simData objects](#simData_objects) you will see how we hook together individual data components to create a `simData` object that is used by the main simulation system.
 
 Although this document is about futures data, parts two and three are necessary reading if you are trying to create or modify any data objects.
 
@@ -88,15 +96,23 @@ It's worth explaining the available options for roll configuration. First of all
 
 'RollOffsetDays': This indicates how many calendar days before a contract expires that we'd normally like to roll it. These vary from zero (Korean bonds KR3 and KR10 which you can't roll until the expiry date) up to -1100 (Eurodollar where I like to stay several years out on the curve).
 
-'CarryOffset': Whether we take carry from an earlier dated contract (-1, which is preferable) or a later dated contract (+1, which isn't ideal but if we hold the front contract we have no choice). This calculation is done based on the *priced* roll cycle, so for example for winter crude where the *hold* roll cycle is just 'Z' (we hold December), and the carry offset is -1 we take the previous month in the *priced* roll cycle (which is a full year FGHJKMNQUVXZ) i.e. November (whose code is 'X'). You read more in Appendix B of [my first book](http://www.systematicmoney.org/systematic-trading).
-
 'ExpiryOffset': How many days to shift the expiry date in a month, eg (the day of the month that a contract expires)-1. These values are just here so we can build roughly correct roll calendars (of which more later). In live trading you'd get the actual expiry date for each contract.
+
+Using these two dates together will indicate when we'd ideally roll an instrument, relative to the first of the month.
+
+For example for Bund futures, the ExpiryOffset is 6; the contract notionally expires on day 1+6 = 7th of the month. The RollOffsetDays is -5, so we roll 5 days before this. So we'd normally roll on the 1+6-5 = 2nd day of the month.
+
+Let's take a more extreme example, Eurodollar. The ExpiryOffset is 18, and the roll offset is -1100 (no not a typo!). We'd roll this product 1100 days before it expired on the 19th day of the month.
+
+'CarryOffset': Whether we take carry from an earlier dated contract (-1, which is preferable) or a later dated contract (+1, which isn't ideal but if we hold the front contract we have no choice). This calculation is done based on the *priced* roll cycle, so for example for winter crude where the *hold* roll cycle is just 'Z' (we hold December), and the carry offset is -1 we take the previous month in the *priced* roll cycle (which is a full year FGHJKMNQUVXZ) i.e. November (whose code is 'X'). You read more in Appendix B of [my first book](http://www.systematicmoney.org/systematic-trading).
 
 
 <a name="get_historical_data"></a>
 ## Getting historical data for individual futures contracts
 
 Now let's turn our attention to getting prices for individual futures contracts. We could get this from anywhere, but we'll use [Quandl](https://wwww.quandl.com). Obviously you will need to [get the python Quandl library](#getQuandlPythonAPI), and you may want to [set a Quandl key](#setQuandlKey). 
+
+NOTE: Quandl are no longer supporting free futures data except for a limited number of instruments. I am looking for alternatives, but the most likely outcome is that I will use IB to get historical data although this will only go back one year and excludes closed contracts.
 
 We can also store it, in principal, anywhere but I will be using the open source [Arctic library](https://github.com/manahl/arctic) which was released by my former employers [AHL](https://ahl.com). This sits on top of Mongo DB (so we don't need yet another database) but provides straightforward and fast storage of pandas DataFrames.
 
@@ -190,7 +206,7 @@ We can store these prices in eithier Arctic or .csv files. The [relevant script 
 <a name="back_adjusted_prices"></a>
 ## Creating and storing back adjusted prices
 
-Once we have multiple prices we can then create a backadjusted price series. The [relevant script](/sysinit/futures/multipleprices_from_arcticprices_and_csv_calendars_to_arctic.py) will read multiple prices from Arctic, do the backadjustment, and then write the prices to Arctic. It's easy to modify this to read/write to/from different sources.
+Once we have multiple prices we can then create a backadjusted price series. The [relevant script](/sysinit/futures/adjustedprices_from_mongo_multiple_to_mongo.py) will read multiple prices from Arctic, do the backadjustment, and then write the prices to Arctic. It's easy to modify this to read/write to/from different sources.
 
 
 ## Backadjusting 'on the fly'
@@ -201,14 +217,24 @@ It's also possible to implement the back-adjustment 'on the fly' within your bac
 
 If you don't like panama stitching then you can modify the method. More details later in this document, [here](#futuresAdjustedPrices).
 
-<a name="storing_futures_data"></a>
 
 
 <a name="create_fx_data"></a>
 ## Getting and storing FX data
 
-Although strictly not futures prices we also need spot FX prices to run our simulation. Again we'll get these from Quandl, and in [this simple script](/sysinit/futures/spotfx_from_quandl_to_arctic_and_csv.py) they are written to Arctic and/or .csv files.
+Although strictly not futures prices we also need spot FX prices to run our simulation. The github for pysystemtrade contains spot FX data, but you will probably wish to update it. In live trading we'd use interactive brokers, but for now I'm going to use one of the many free data websites: [investing.com](investing.com)
 
+You need to register and then download enough history. To see how much FX data there already is:
+
+```python
+from sysdata.csv.csv_spot_fx import *
+data=csvFxPricesData()
+data.get_fx_prices("GBPUSD")
+```
+
+Save the files in a directory with no other content, using the filename format "GBPUSD.csv". Using [this simple script](/sysinit/futures/spotfx_from_csvAndInvestingDotCom_to_arctic.py) they are written to Arctic and/or .csv files. You will need to modify the script to point to the right directory, and you can also change the column and formatting parameters to use data from other sources.
+
+<a name="storing_futures_data"></a>
 # Storing and representing futures data
 
 The paradigm for data storage is that we have a bunch of [data objects](#generic_objects) for specific types of data, i.e. futuresInstrument is the generic class for storing static information about instruments. Each of those objects then has a matching *data storage object* which accesses data for that object, i.e. futuresInstrumentData. Then we have [specific instances of those for different data sources](#specific_data_storage), i.e. mongoFuturesInstrumentData for storing instrument data in a mongo DB database. 
@@ -268,9 +294,19 @@ The combination of a specific [instrument](#futuresInstrument) and a [contract d
 ### [Prices for individual futures contracts](/sysdata/futures/futures_per_contract_prices.py): futuresContractPrices(), dictFuturesContractPrices() and futuresContractPriceData()
 
 
-The price data for a given contract is just stored as a DataFrame with specific column names. Notice that we store Open, High, Low, Close and Settle prices; but currently in the rest of pysystemtrade we effectively throw away everything except Settle.
+The price data for a given contract is just stored as a DataFrame with specific column names. Notice that we store Open, High, Low, and Final prices; but currently in the rest of pysystemtrade we effectively throw away everything except Final.
+
+(A 'final' price is eithier a close or a settlement price depending on how the data has been parsed from it's underlying source)
 
 `dictFuturesContractPrices`: When calculating roll calendars we work with prices from multiple contracts at once.
+
+<a name="futuresContractFinalPrices"></a>
+### [Final prices for individual futures contracts](/sysdata/futures/futures_per_contract_final_prices.py): futuresContractFinalPrices(), dictFuturesContractFinalPrices()
+
+This is just the final prices alone. There is no data storage required for these since we don't need to store them seperately, just extract them from eithier `futuresContractPrices` or `dictFuturesContractPrices` objects.
+
+`dictFuturesContractFinalPrices`: When calculating roll calendars we work with prices from multiple contracts at once.
+
 
 <a name="rollCalendar"></a>
 ### [Roll calendars](/sysdata/futures/roll_calendars.py): rollCalendar() and rollCalendarData()
@@ -375,6 +411,21 @@ For obvious (?) reasons we only implement get and read methods for .csv files (S
 
 Reads futures configuration information from [here](/data/futures/csvconfig/instrumentconfig.csv) (note this is a seperate file from the one used to initialise the mongoDB database [earlier](#init_instrument_config) although this uses the same class method to get the data). Columns currently used by the simulation engine are: Instrument, Pointsize, AssetClass, Currency, Slippage, PerBlock, Percentage, PerTrade. Extraneous columns don't affect functionality. 
 
+<a name="csvFuturesContractPriceData"></a>
+#### [csvFxPricesData()](/sysdata/csv/csv_spot_fx.py) inherits from [futuresContractPriceData](#futuresContractPriceData)
+
+Reads prices for individual futures contracts. There is no default directory for these as this is provided as a convenience method if you have acquired .csv contract level data and wish to put it into your system. For this reason there is a lot of flexibility in the arguments to allow different formats to be included. As an example, this code will read data downloaded from `barcharts.com` (with files renamed in the format `EDOLLAR_201509.csv`):
+
+```python
+csv_futures_contract_prices = csvFuturesContractPriceData(datapath="/home/username/data/barcharts_csv",
+                                                          input_date_index_name="Date Time",
+                                                          input_skiprows=1, input_skipfooter=1,
+                                                          input_column_mapping=dict(OPEN='Open',
+                                                                                    HIGH='High',
+                                                                                    LOW='Low',
+                                                                                    FINAL='Close'))
+```
+
 <a name="csvRollCalendarData"></a>
 #### [csvRollCalendarData()](/sysdata/csv/csv_roll_calendars.py) inherits from [rollParametersData](#rollParametersData)
 
@@ -406,7 +457,28 @@ For production code, and storing large amounts of data (eg for individual future
 
 Obviously you will need to make sure you already have a Mongo DB instance running. You might find you already have one running, in Linux use `ps wuax | grep mongo` and then kill the relevant process.
 
-All Mongo code uses the connection information defined in [this class](/sysdata/mongodb/mongo_connection.py). Personally I like to keep my Mongo data in a specific subdirectory; that is achieved by starting up with `mongod --dbpath ~/pysystemtrade/data/futures/mongodb/` (in Linux). Of course this isn't compulsory.
+Personally I like to keep my Mongo data in a specific subdirectory; that is achieved by starting up with `mongod --dbpath ~/data/mongodb/` (in Linux). Of course this isn't compulsory.
+
+#### Specifying a mongoDB connection
+
+You need to specify an IP address (host), and database name when you connect to MongoDB. These are set with the following priority:
+
+- Firstly, arguments passed to a `mongoDb()` instance, which is then optionally passed to any data object with the argument `mongo_db=mongoDb(host='localhost', database_name='production')` All arguments are optional. 
+- Then, variables set in the [private `.yaml` configuration file](private.private_config.yaml): mongo_host, mongo_db
+- Finally, default arguments hardcoded [in mongo_connection.py](/sysdata/mongodb/mongo_connection.py): DEFAULT_MONGO_DB, DEFAULT_MONGO_HOST, DEFAULT_MONGO_PORT
+
+Note that 'localhost' is equivalent to '127.0.0.1', i.e. this machine. Note also that no port can be specified. This is because the port is hard coded in Arctic. You should stick to the default port 27017.
+
+If your mongoDB is running on your local machine then you can stick with the defaults (assuming you are happy with the database name 'production'). If you have different requirements, eg mongo running on another machine or you want a different database name, then you should set them in the private .yaml file. If you have highly bespoke needs, eg you want to use a different database or different host for different types of data, then you will need to add code like this:
+
+```python
+# Instead of:
+mfidata=mongoFuturesInstrumentData()
+
+# Do this
+from sysdata.mongodb import mongoDb
+mfidata=mongoFuturesInstrumentData(mongo_db = mongoDb(database_name='another database')) # could also change host
+```
 
 
 <a name="mongoFuturesInstrumentData"></a>
@@ -458,7 +530,9 @@ Reads price data and returns in the form of [futuresContractPrices](#futuresCont
 
 #### [quandlFxPricesData()](/sysdata/quandl/quandl_spotfx_prices.py) inherits from [fxPricesData](#fxPricesData)
 
+DEPRECATE THIS: NO LONGER WORKS
 Reads FX spot prices from QUANDL. Acceses [this .csv file](/sysdata/quandl/QuandlFXConfig.csv) which contains the codes required to get data from Quandl for a specific currency.
+
 
 
 <a name="arctic"></a>
@@ -468,7 +542,35 @@ Reads FX spot prices from QUANDL. Acceses [this .csv file](/sysdata/quandl/Quand
 
 Basically my mongo DB objects are for storing static information, whilst Arctic is for time series.
 
-Arctic has several *storage engines*, in my code I use the default VersionStore. 
+Arctic has several *storage engines*, in my code I use the default VersionStore.
+
+#### Specifying an arctic connection
+
+You need to specify an IP address (host), and database name when you connect to Arctic. Usually Arctic data objects will default to using the same settings as Mongo data objects.
+
+Note:
+- No port is specified - Arctic can only use the default port. For this reason I strongly discourage changing the port used when connecting to other mongo databases.
+- In actual use Arctic prepends 'arctic-' to the database name. So instead of 'production' it specifies 'arctic-production'. This shouldn't be an issue unless you are connecting directly to the mongo database.
+
+These are set with the following priority:
+
+- Firstly, arguments passed to a `mongoDb()` instance, which is then optionally passed to any Arctic data object with the argument `mongo_db=mongoDb(host='localhost', database_name='production')` All arguments are optional. 
+- Then, arguments set in the [private `.yaml` configuration file](private.private_config.yaml): mongo_host, mongo_db
+- Finally, default arguments hardcoded [in mongo_connection.py](/sysdata/mongodb/mongo_connection.py): DEFAULT_MONGO_DB, DEFAULT_MONGO_HOST, DEFAULT_MONGO_PORT
+
+Note that 'localhost' is equivalent to '127.0.0.1', i.e. this machine.
+
+If your mongoDB is running on your local machine with the standard port settings, then you can stick with the defaults (assuming you are happy with the database name 'production'). If you have different requirements, eg mongo running on another machine, then you should code them up in the private .yaml file. If you have highly bespoke needs, eg you want to use a different database for different types of data, then you will need to add code like this:
+
+```python
+# Instead of:
+afcpdata=arcticFuturesContractPriceData()
+
+# Do this
+from sysdata.mongodb import mongoDb
+afcpdata=arcticFuturesContractPriceData(mongo_db = mongoDb(database_name='another database')) # could also change host
+```
+
 
 <a name="arcticFuturesContractPriceData"></a>
 #### [arcticFuturesContractPriceData()](/sysdata/arctic/arctic_futures_per_contract_prices.py) inherits from [futuresContractPriceData](#futuresContractPriceData)
@@ -748,4 +850,10 @@ class csvMultiplePriceData(csvPaths, futuresMultiplePriceData):
 
 
 ```
+
+# Updating the provided .csv data from a production system
+
+If you have set up pysystemtrade as a [production trading environment](/docs/production.md) you may wish to continue storing your backtest data in .csv files rather than in databases (this step is also required for the [BDFL](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life) of pysystemtrade to ensure the data provided on github is up to date). The following functions will allow you to update the .csv files:
+
+- [For spot FX data](/sysinit/futures/spotfx_from_arctic_to_csv.py) 
 

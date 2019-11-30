@@ -1,5 +1,45 @@
 # Release notes
 
+## Version 0.24.0 ACTIVE
+
+Fixed bugs relating to building multiple and adjusted prices
+Slight refactoring of futuresContractPrices objects. These only have FINAL, not CLOSE or SETTLE prices now.
+
+## Version 0.23.0
+
+'get_filename_for_package' can now take absolute as well as relative paths, and can cope with seperate file names
+Updated legacy .csv files
+Fixed a few bugs
+Can now get unexpired contracts for a given instrument using 'contractDateWithRollParameters.get_unexpired_contracts_from_now_to_contract_date()'
+
+## Version 0.22.0
+
+*Now requires python 3.6.0, pandas 0.25.2*
+Fixed a few bugs in production functions for FX prices
+Logging now requires an explicit labelling argument, eg `log=logtoscreen("String required here")
+Changed mongodb logging so now indexes on unique ID
+Generally cleaned up logging code
+Moved update fx price logic inside generic fx price object
+
+## Version 0.21.0
+
+Removed dependency on Quandl currency for setting up spot FX, now uses investing.com
+Fixed issues relating to robust vol calc, date offset in roll calendars
+
+## Version 0.20.0
+
+Started documenting 'how to run a production system'
+Created logging to mongo database
+Refactoring of mongo and arctic connections
+Started creating crontab and scripts for various production functions (read and write FX prices)
+Added code to ensure unique client ID for IB
+
+## Version 0.19.0
+
+Added connection code for Interactive Brokers. See [connecting pysystemtrade to interactive brokers](/docs/IB.md) for more details.
+Implemented data socket for spot FX, getting data from IB
+Added handcrafting optimisation code.
+
 ## Version 0.18.2
 Added methods to read weight data from csv files
 Put generalised non linear mapping into forecast combination
@@ -284,9 +324,6 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 # Features to add -next release
 
-* Check does 'cheap rules' not work when fixed instrument rules, know about weight==0
-* Refactor yaml code to drop pyyaml (no long supported)
-* Add risk overlay
 
 # Features to add - later releases
 
@@ -294,12 +331,14 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
   * Parallel processing of - getting data, trading rules, p&l calculation, optimisation
   * Create live config from a system object (Put final value of estimates into a yaml file) 
-  * Exogenous risk model
-  * check systems have correct attributes; check turnover, minimum size, right forecast scalars (distribution across instruments) etc
+  * Check systems have correct attributes; check turnover, minimum size, right forecast scalars (distribution across instruments) etc
+  * Check does 'cheap rules' not work when fixed instrument rules, know about weight==0
+  * Refactor yaml code to drop pyyaml (no long supported)
+  * Add risk overlay
+
 
 * Live trading:
 
-  * ib broker interface
   * accounting
   * order / position reconciliation
   * issue market order 

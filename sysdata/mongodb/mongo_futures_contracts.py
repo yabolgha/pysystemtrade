@@ -4,6 +4,7 @@ CONTRACT_COLLECTION = 'futures_contracts'
 DEFAULT_DB = 'production'
 
 from sysdata.futures.contracts import futuresContractData, futuresContract
+from syslogdiag.log import logtoscreen
 
 class mongoFuturesContractData(futuresContractData):
     """
@@ -16,11 +17,11 @@ class mongoFuturesContractData(futuresContractData):
     If you want more information about a given instrument you have to read it in using mongoFuturesInstrumentData
     """
 
-    def __init__(self, database_name= DEFAULT_DB):
+    def __init__(self, mongo_db = None, log=logtoscreen("mongoFuturesContractData")):
 
-        super().__init__()
+        super().__init__(log=log)
 
-        self._mongo = mongoConnection(database_name, CONTRACT_COLLECTION)
+        self._mongo = mongoConnection(CONTRACT_COLLECTION, mongo_db=mongo_db)
 
         # this won't create the index if it already exists
         self._mongo.create_multikey_index("instrument_code", "contract_date")

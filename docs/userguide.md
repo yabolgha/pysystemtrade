@@ -1,3 +1,12 @@
+This is the main userguide for pysystemtrade. Before reading this you should have gone through the [introduction.](/docs/introduction.md)
+
+Related documents:
+
+- [Storing futures and spot FX data](/docs/futures.md)
+- [Using pysystemtrade as a production trading environment](/docs/production.md)
+- [Connecting pysystemtrade to interactive brokers](/docs/IB.md)
+
+
 This guide is divided into four parts. The first ['How do I?'](#how_do_i)
 explains how to do many common tasks. The second part ['Guide'](#guide) details
 the relevant parts of the code, and explains how to modify or create new parts.
@@ -3643,8 +3652,8 @@ The system, data, config and each stage object all have a .log attribute, to
 allow the system to report to the user; as do the functions provided to
 estimate correlations and do optimisations.
 
-In the current version this just prints to screen, although in future logging
-will be able to write to databases and files, and send emails if critical
+In the current version this just prints to screen, although in production systems it
+can write to databases and files (FIX ME LINK), and send emails if critical
 events are happening.
 
 The pre-baked systems I've included all include a parameter log_level. This can
@@ -4106,6 +4115,7 @@ Other methods exist to access logging and caching.
 | `rawdata.get_daily_prices` | Standard | `instrument_code` | I | `data.daily_prices`|
 | `rawdata.daily_denominator_price` | Standard | `instrument_code` | O | Price used to calculate % volatility (for futures the current contract price) |
 | `rawdata.daily_returns` | Standard | `instrument_code` | D, O | Daily returns in price units|
+| `rawdata.get_percentage_returns` | Standard | `instrument_code` | D | Daily returns as a percentage. |
 | `rawdata.daily_returns_volatility` | Standard | `instrument_code` | D,O | Daily standard deviation of returns in price units |
 | `rawdata.get_daily_percentage_volatility` | Standard | `instrument_code` | D,O | Daily standard deviation of returns in % (10.0 = 10%) |
 | `rawdata.norm_returns` | Standard | `instrument_code` | D | Daily returns normalised by vol (1.0 = 1 sigma) |
