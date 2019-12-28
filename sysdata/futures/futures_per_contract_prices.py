@@ -181,6 +181,10 @@ class dictFuturesContractFinalPrices(dict):
 
         return all_contract_ids
 
+    def last_contract_id(self):
+        sorted_contract_ids = self.sorted_contract_ids()
+
+        return sorted_contract_ids[-1]
 
 BASE_CLASS_ERROR = "You have used a base class for futures price data; you need to use a class that inherits with a specific data source"
 
@@ -352,6 +356,15 @@ class futuresContractPriceData(baseData):
             self._delete_prices_for_contract_object_with_no_checks_be_careful(futures_contract_object)
         else:
             self.log.warn("Tried to delete non existent contract")
+
+    def delete_all_prices_for_instrument_code(self, instrument_code, areyousure=False):
+        ## We don't pass areyousure, otherwise if we weren't sure would get multiple exceptions
+        if not areyousure:
+            raise Exception("You have to be sure to delete_all_prices_for_instrument!")
+
+        all_contracts_to_delete = self.contracts_with_price_data_for_instrument_code(instrument_code)
+        for contract in all_contracts_to_delete:
+            self.delete_prices_for_contract_object(contract, areyousure=True)
 
     def _delete_prices_for_contract_object_with_no_checks_be_careful(self, futures_contract_object):
         raise NotImplementedError(BASE_CLASS_ERROR)
