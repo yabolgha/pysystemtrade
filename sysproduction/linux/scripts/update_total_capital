@@ -1,3 +1,3 @@
 #!/bin/bash
 . ~/.profile
-. p sysproduction.update_total_capital.update_total_capital
+. $SCRIPT_PATH/p sysproduction.update_total_capital.update_total_capital
