@@ -6,7 +6,8 @@ Work up a minimum example of a trend following system
 
 # Get some data
 
-from sysdata.csv.csv_sim_futures_data import csvFuturesSimData
+from sysdata.sim.csv_futures_sim_data import csvFuturesSimData
+
 """"
 Let's get some data
 
@@ -26,7 +27,7 @@ print(data.get_raw_price("EDOLLAR").tail(5))
 data can also behave in a dict like manner (though it's not a dict)
 """
 
-print(data['SP500'])
+print(data["SP500"])
 print(data.keys())
 """
 
@@ -61,7 +62,7 @@ def calc_ewmac_forecast(price, Lfast, Lslow=None):
     # We can't use the price of the contract we're trading, or the volatility
     # will be jumpy
     # And we'll miss out on the rolldown. See
-    # http://qoppac.blogspot.co.uk/2015/05/systems-building-futures-rolling.html
+    # https://qoppac.blogspot.com/2015/05/systems-building-futures-rolling.html
 
     price = price.resample("1B").last()
 
@@ -83,13 +84,16 @@ Try it out
 
 (this isn't properly scaled at this stage of course)
 """
-instrument_code = 'EDOLLAR'
+instrument_code = "GOLD"
 price = data.daily_prices(instrument_code)
 ewmac = calc_ewmac_forecast(price, 32, 128)
-ewmac.columns = ['forecast']
+ewmac2 = calc_ewmac_forecast(price, 16, 64)
+
+ewmac.columns = ["forecast"]
 print(ewmac.tail(5))
 
 from matplotlib.pyplot import show
+
 ewmac.plot()
 show()
 """
@@ -97,7 +101,10 @@ Did we make money?
 """
 
 from syscore.accounting import accountCurve
+
 account = accountCurve(price, forecast=ewmac)
+account2 = accountCurve(price, forecast=ewmac2)
+
 account.curve()
 
 account.curve().plot()

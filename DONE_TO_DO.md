@@ -1,14 +1,91 @@
 # Release notes
 
-## Version 0.24.0 ACTIVE
+## Version 0.60.0
 
+Split out control configuration from other YAML files (**YOU WILL NEED TO CHANGE PRIVATE CONFIG** look at the production docs!)
+Refactoring of run and control processes mostly into new syscontrol module
+Added simple monitoring tool
+Added email 'to' option (**YOU WILL NEED TO CHANGE PRIVATE CONFIG TO INCLUDE email_to parameter**)
+
+## Version 0.52.0
+
+Mostly refactoring and documenting the creation and storage of data
+
+
+## Version 0.51.0
+
+Essentially 'finished' production.md (in as much as anything can be finished...)
+Changed data Blobs so now take lists of objects rather than str, easier to see dependencies
+
+## Version 0.50.0
+
+(Done loads of work but forgotten to update the version number or this file. So let's reward ourselves with a 0.20 version bump. The following list is almost certainly incomplete...)
+Done loads of documentation for production
+Added position limits
+Removed broker base classes as redundant
+Minimum tick size used in setting limit orders
+Stopped double counting of volumes when daily/intraday data mixed
+Added startup script
+Fixed issues with time zone mismatches
+Added trades report, strategy report, signals report, risk report, p&l report
+Position locks
+Added interactive diagnostics, interactive order stack, interactive controls
+Execution algo!
+Added capability to trade
+
+## Version 0.30.0
+
+Introduced capital model for production
+Fixed bug in implementation of correlation to covariance
+Added optional code for risk overlay [see blog](https://qoppac.blogspot.com/2020/05/when-endogenous-risk-management-isnt.html)
+Moved fx cross logic out of sim data into fxPricesData
+Strategies now run backtests from configuration file
+
+## Version 0.29.0
+
+Added price 'spike' checker, and manual price checking service
+Removed PIL library (issue 161)
+Fixed ib_insync PIP issue (pull 162)
+MongoDb logs will now try to email user if a critical error is raised
+
+## Version 0.28.0
+
+IB now uses ib_insync, not native IB library
+
+## Version 0.27.0
+
+Cleaned up way defaults and private config files work
+Removed separate mongodb config file
+Added production code to run a system backtest and save optimal position state
+Cleaned up the way path and filename resolution works
+Added production code to backup mongodb to .csv files
+
+## Version 0.26.0
+
+Added production code to get daily futures prices from IB, update sampled contracts, update multiple and adjusted prices.
+
+## Version 0.25.0
+
+Can now get individual futures prices from IB, both historical daily and intraday (with get_prices_at_frequency_for_* methods)
+Added code to deal with VIX weekly expiries - they can now be ignored
+Caching IB contract objects in IB client as rather expensive
+IB client will now avoid pacing violations
+Removed futuresContract.simple() method; you can now just do futuresContract("AUDUSD", "yyyymmdd")
+Cleaned up IB client code, error handling is now consistent
+Added  broker_get_contract_expiry_date method to brokerClient and ibClient
+IB connection will now check to see if a clientid is being used even if one is passed. Has '.terminate' method which will try and clear clientid.
+.csv config files are cached in IB price API objects
+
+## Version 0.24.0
+
+Can now pass keyword arguments to data methods when creating a trading rule (Enhancement # 141)
 Fixed bugs relating to building multiple and adjusted prices
 Slight refactoring of futuresContractPrices objects. These only have FINAL, not CLOSE or SETTLE prices now.
 Added more data
 
 ## Version 0.23.0
 
-'get_filename_for_package' can now take absolute as well as relative paths, and can cope with seperate file names
+'get_filename_for_package' can now take absolute as well as relative paths, and can cope with separate file names
 Updated legacy .csv files
 Fixed a few bugs
 Can now get unexpired contracts for a given instrument using 'contractDateWithRollParameters.get_unexpired_contracts_from_now_to_contract_date()'
@@ -65,7 +142,7 @@ Massive refactoring of sim data objects, to support alternative data sources and
 Created classses for individual futures contracts, and included example of how to use Quandl to get them
 
 ## Version 0.16.5
-Updated .csv data and moved to seperate section - now stored under Github LFS
+Updated .csv data and moved to separate section - now stored under Github LFS
 
 ## Version 0.16.4
 Added quandl data (but only for individual futures contracts right now so useless)
@@ -84,7 +161,7 @@ Updated to pandas 0.22.0
 Fixed issue #64, #68, #70 and other issues relating to pandas API update breaking correlation matrices
 
 ## Version 0.16.0
-Moved most examples except core to seperate git [here](https://github.com/robcarver17/pysystemtrade_examples)
+Moved most examples except core to separate git [here](https://github.com/robcarver17/pysystemtrade_examples)
 
 ## Version 0.15.0
 
@@ -99,12 +176,12 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 * Stages now have _names and _description defined in __init__
 * log values now passed in when __init__ of stage; hence baseystem.__init__ is much cleaner
 * Caching:
-   * Cache is now accessed via a seperate object in system; so system.cache.* rather than system.* for cache methods
+   * Cache is now accessed via a separate object in system; so system.cache.* rather than system.* for cache methods
    * Caching now done through decorators: from systems.system_cache import input, dont_cache, diagnostic, output
    * Use protected=True and/or not_cached=True within decorators
 * Got rid of 'switching' stages for estimating forecast scalars, forecast weights, instrument weights.
    * Explicit import of a Fixed or Estimated version of a class won't work; use the generic version.
-   * Added seperate fields to .yaml file to switch between IDM and FDM estimation or fixed values
+   * Added separate fields to .yaml file to switch between IDM and FDM estimation or fixed values
 * Split ultra-massive accounts.py into multiple files and classes
 * Split unwieldy ForecastCombine into several classes
 * Added a bunch more unit tests as I went through the above refactoring exercise
@@ -117,7 +194,7 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 ## Version 0.12.0
 
-* Capital correction now works. New methods: system.accounts.capital_multiplier, system.accounts.portfolio_with_multiplier, system.portfolio.get_actual_positon, system.portfolio.get_actual_buffers_with_position, system.accounts.get_buffered_position_with_multiplier. See this [blog post](http://qoppac.blogspot.co.uk/2016/06/capital-correction-pysystemtrade.html)  and [the guide](https://github.com/robcarver17/pysystemtrade/blob/master/docs/userguide.md#capcorrection)
+* Capital correction now works. New methods: system.accounts.capital_multiplier, system.accounts.portfolio_with_multiplier, system.portfolio.get_actual_positon, system.portfolio.get_actual_buffers_with_position, system.accounts.get_buffered_position_with_multiplier. See this [blog post](https://qoppac.blogspot.com/2016/06/capital-correction-pysystemtrade.html) and [the guide](https://github.com/robcarver17/pysystemtrade/blob/master/docs/userguide.md#capcorrection)
 
 
 ## Version 0.11.2
@@ -153,7 +230,7 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 * Fixed bugs introduced in last version
 
 ## Version 0.10.0 
-* Refactored optimisation with costs code, changed configuration slightly (read [this revised blog post for more](http://qoppac.blogspot.co.uk/2016/05/optimising-weights-with-costs.html) )
+* Refactored optimisation with costs code, changed configuration slightly (read [this revised blog post for more](https://qoppac.blogspot.com/2016/05/optimising-weights-with-costs.html) )
 * Introduced method to cope with pooling on both costs and gross returns, so doesn't recalculate several times
 * Moved pre-screening for expensive assets to an earlier stage
 * New optimisation method "equal_weights" for equal weights; means that eg expensive forecasts can be removed and then take an equal weight on the rest
@@ -170,7 +247,7 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 ## Version 0.9.0 
 
-* Changed / added the following methods to `system.accounts`: `pandl_for_instrument_forecast_weighted`, `pandl_for_trading_rule_weighted`, `pandl_for_all_trading_rules`, `pandl_for_trading_rule`, `pandl_for_trading_rule_unweighted`, `pandl_for_all_trading_rules_unweighted` See [/docs/userguide.md#weighted_acg] for more detail.
+* Changed / added the following methods to `system.accounts`: `pandl_for_instrument_forecast_weighted`, `pandl_for_trading_rule_weighted`, `pandl_for_all_trading_rules`, `pandl_for_trading_rule`, `pandl_for_trading_rule_unweighted`, `pandl_for_all_trading_rules_unweighted` See [Weighted and unweighted account curve groups](/docs/userguide.md#weighted_acg) for more detail.
 * Added `get_capital_in_rule`, `get_instrument_forecast_scaling_factor` to help calculate these.
 * fixed error in user guide
 
@@ -182,7 +259,7 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 ## Version 0.8.0 
 
-* introduced methods for optimisation with costs. See [this blog post for more](http://qoppac.blogspot.co.uk/2016/05/optimising-weights-with-costs.html)
+* introduced methods for optimisation with costs. See [this blog post for more](https://qoppac.blogspot.com/2016/05/optimising-weights-with-costs.html)
 * made a lot of tweaks to optimisation code; mainly shrinkage now shrinks towards target Sharpe ratio, equalising SR does the same; consistent annualisation 
 * introduced new parameter for optimisation `ann_target_SR`
 * `system.combForecast.calculation_of_raw_forecast_weights` (estimated version) no longer stores nested weights.
@@ -191,7 +268,7 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 * ability to pickle and unpickle cache (`system.pickle_cache`, `system.unpickle_cache`)
 * included breakout rule (example is being written)
-* seperate out weighting calculation so instrument forecast pandl can be cached
+* separate out weighting calculation so instrument forecast pandl can be cached
 * csv data is now daily and updated to present day
 * Fixed bug with loading data from private module
 * Changed raw cost data so returns dict not tuple
@@ -310,12 +387,12 @@ Moved most examples except core to seperate git [here](https://github.com/robcar
 
 ## Version: 0.0.2
 
-* Added rolling estimate of forecast scalars; try System([rawdata, rules, *ForecastScaleCapEstimated()*], data, config)
+* Added rolling estimate of forecast scalars; try `System([rawdata, rules, ForecastScaleCapEstimated()], data, config)`
 * Moved .get_instrument_list from portfolio object to parent system
 
 ## Version: 0.0.1
 
-* Basic backtesting enviroment with example futures data.
+* Basic backtesting environment with example futures data.
 
 
 

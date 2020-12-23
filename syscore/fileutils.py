@@ -1,8 +1,10 @@
+import glob
+import datetime
+import time
 import os
 import sys
-import matplotlib.pylab as plt
-from PIL import Image
-from functools import partial
+
+from syscore.dateutils import SECONDS_PER_DAY
 
 # all these are unused: but are required to get the filename padding to work
 import syscore
@@ -12,54 +14,90 @@ import sysinit
 import examples
 import private
 import data
+import sysbrokers
+import sysproduction
+
 
 def get_filename_for_package(pathname, filename=None):
     """
-    Get a full filename given path and filename OR relative path+filename
+    A way of resolving relative and absolute filenames, and dealing with akward OS specific things
 
-    :param pathname: Absolute eg "/home/rob/pysystemtrader/data/thing" or relative eg "data.thing"
-    :param filename: filename, or None if using
-    :return: full resolved path and filename
+    We can either have pathname = 'some.path.filename.csv' or pathname='some.path', filename='filename.csv'
+
+    An absolute filename is a full path
+
+    A relative filename sits purely within the pysystemtrade directory, eg sysbrokers.IB.config.csv resolves to
+       ..../pysystemtrade/sysbrokers/IB/config.csv
+
+    We can pass either:
+
+    - a relative filename demarcated with .
+    - an absolute filename demarcated with ., / or \
+
+    Absolute filenames always begin with ., / or \
+    Relative filenames do not
     """
+    markedup_pathname = add_ampersand_to_pathname(pathname)
     if filename is None:
         # filename will be at the end of the pathname
-        path_as_list = pathname.rsplit(".")
-        filename = '.'.join(path_as_list[-2:])
-        pathname = '.'.join(path_as_list[0:-2])
+        path_as_list = markedup_pathname.rsplit("&")
+        filename = ".".join(path_as_list[-2:])
+        split_pathname = "&".join(path_as_list[0:-2])
+    else:
+        # filename is already separate
+        split_pathname = markedup_pathname
 
-    resolved_pathname = get_pathname_for_package(pathname)
+    # Resolve pathname
+    resolved_pathname = get_resolved_ampersand_pathname(split_pathname)
 
-    return resolved_pathname+"/"+filename
+    # Glue together
+    full_path_and_file = os.path.join(resolved_pathname, filename)
 
-
-def get_pathname_for_package(pathname):
-    """
-    Returns the resolved pathname given a relative pathname eg "sysdata.tests"
-
-    If an absolute pathname, eg "home/user/pysystemtrade/sysdata/tests" is passed, just return it
-
-    :param name_with_dots: Relative path name written with "." eg "sysdata.tests"
-    :type str:
-
-    :returns: full pathname of package eg "../sysdata/tests/"
+    return full_path_and_file
 
 
-    """
-    if "/" in pathname:
-        # don't need to sub in actual pathname
-        return pathname
+def add_ampersand_to_pathname(pathname):
+    pathname_replaced = pathname.replace(".", "&")
+    pathname_replaced = pathname_replaced.replace("/", "&")
+    pathname_replaced = pathname_replaced.replace("\\", "&")
 
-    path_as_list = pathname.rsplit(".")
+    return pathname_replaced
 
-    return get_pathname_for_package_from_list(path_as_list)
+
+def get_resolved_pathname(pathname):
+    # Turn /,\ into . so system independent
+    pathname_replaced = add_ampersand_to_pathname(pathname)
+    resolved_pathname = get_resolved_ampersand_pathname(pathname_replaced)
+
+    return resolved_pathname
+
+
+def get_resolved_ampersand_pathname(pathname):
+    path_as_list = pathname.rsplit("&")
+
+    # Check for absolute or relative
+    pathname = get_pathname_from_list(path_as_list)
+
+    return pathname
+
+
+def get_pathname_from_list(path_as_list):
+    if path_as_list[0] == "" or path_as_list[0].endswith(":"):
+        # path_type_absolute
+        resolved_pathname = get_absolute_pathname_from_list(path_as_list[1:])
+    else:
+        # relativee
+        resolved_pathname = get_pathname_for_package_from_list(path_as_list)
+
+    return resolved_pathname
 
 
 def get_pathname_for_package_from_list(path_as_list):
     """
     Returns the filename of part of a package from a list
 
-    :param path_as_list: List of path and file name eg ["syscore","fileutils.py"]
-    :type path_as_list:
+    :param path_as_list: List of path  ["syscore","subdirector"] in pysystemtrade world
+    :type path_as_list: list of str
 
     :returns: full pathname of package
     """
@@ -72,7 +110,23 @@ def get_pathname_for_package_from_list(path_as_list):
 
     last_item_in_list = path_as_list.pop()
     pathname = os.path.join(
-        get_pathname_for_package_from_list(path_as_list), last_item_in_list)
+        get_pathname_for_package_from_list(path_as_list), last_item_in_list
+    )
+
+    return pathname
+
+
+def get_absolute_pathname_from_list(path_as_list):
+    """
+    Returns the absolute pathname from a list
+
+    :param path_as_list: List of path and file name eg ["syscore","fileutils.py"]
+    :type path_as_list:
+
+    :returns: full pathname of package
+    """
+    pathname = os.path.join(*path_as_list)
+    pathname = os.path.sep + pathname
 
     return pathname
 
@@ -85,37 +139,110 @@ def files_with_extension_in_pathname(pathname, extension=".csv"):
     :param extension: str
     :return: list of files, with extensions stripped off
     """
-    pathname = get_pathname_for_package(pathname)
+    pathname = get_resolved_pathname(pathname)
 
     file_list = os.listdir(pathname)
-    file_list = [filename for filename in file_list if filename.endswith(extension)]
-    file_list_no_extension = [filename.split('.')[0] for filename in file_list]
+    file_list = [
+        filename for filename in file_list if filename.endswith(extension)]
+    file_list_no_extension = [filename.split(".")[0] for filename in file_list]
 
     return file_list_no_extension
+
 
 def file_in_home_dir(filename):
     pathname = os.path.expanduser("~")
 
     return os.path.join(pathname, filename)
 
-def image_process(filename):
+
+def rename_files_with_extension_in_pathname_as_archive(
+    pathname, extension=".txt", new_extension=".arch"
+):
     """
-    Dumps the current plot to a low res and high res grayscale .jpg in the current users home directory
-    Used by Rob for writing yet another of his dull books on trading
+    Find all the files with a particular extension in a directory, and rename them
+     eg thing.txt will become thing_yyyymmdd.txt where yyyymmdd is todays date
 
-    :param filename: filename to write
-    :return: None
+    :param pathname: absolute eg "home/user/data" or relative inside pysystemtrade eg "data.futures"
+    :param extension: str
+    :return: list of files, with extensions stripped off
     """
 
-    fig = plt.gcf()
-    fig.set_size_inches(18.5, 10.5)
-    fig.savefig(file_in_home_dir("%s.png" % filename), dpi=300)
-    fig.savefig(file_in_home_dir("%sLOWRES.png" % filename), dpi=50)
+    list_of_files = files_with_extension_in_pathname(pathname, extension)
+    pathname = get_resolved_pathname(pathname)
 
-    Image.open(file_in_home_dir("%s.png" % filename)).convert('L').save(file_in_home_dir("%s.jpg" % filename))
-    Image.open(file_in_home_dir("%sLOWRES.png" % filename)).convert('L').save(file_in_home_dir("%sLOWRES.jpg" % filename))
+    for filename in list_of_files:
+        full_filename = os.path.join(pathname, filename)
+        rename_file_as_archive(
+            full_filename, old_extension=extension, new_extension=new_extension
+        )
 
 
-if __name__ == '__main__':
+def rename_file_as_archive(
+        full_filename,
+        old_extension=".txt",
+        new_extension=".arch"):
+    """
+    Rename a file with archive suffix
+     eg thing.txt will become thing_yyyymmdd.arch where yyyymmdd is todays date
+
+    :param pathname: absolute eg "home/user/data" or relative inside pysystemtrade eg "data.futures"
+    :param extension: str
+    :return: list of files, with extensions stripped off
+    """
+
+    old_filename = "%s%s" % (full_filename, old_extension)
+    date_label = datetime.datetime.now().strftime("%Y%m%d")
+    new_filename = "%s_%s%s" % (full_filename, date_label, new_extension)
+
+    os.rename(old_filename, new_filename)
+
+
+def delete_old_files_with_extension_in_pathname(
+    pathname, days_old=30, extension=".arch"
+):
+    """
+    Find all the files with a particular extension in a directory, and delete them
+    if older than x days
+
+    :param pathname: absolute eg "home/user/data" or relative inside pysystemtrade eg "data.futures"
+    :param extension: str
+    :return: list of files, with extensions stripped off
+    """
+
+    pathname = get_resolved_pathname(pathname)
+    list_of_files = glob.glob(pathname + "/**/*" + extension, recursive=True)
+
+    for filename in list_of_files:
+        delete_file_if_too_old(filename, days_old=days_old)
+
+
+def delete_file_if_too_old(full_filename_with_ext, days_old=30):
+    file_age = get_file_or_folder_age_in_days(full_filename_with_ext)
+    if file_age > days_old:
+        print("Deleting %s" % full_filename_with_ext)
+        os.remove(full_filename_with_ext)
+
+
+def get_file_or_folder_age_in_days(full_filename_with_ext):
+    # time will be in seconds
+    file_time = os.stat(full_filename_with_ext).st_ctime
+    time_now = time.time()
+
+    age_seconds = time_now - file_time
+    age_days = age_seconds / SECONDS_PER_DAY
+    return age_days
+
+
+if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
+
+
+def html_table(file, lol: list):
+  file.write('<table>')
+  for sublist in lol:
+    file.write('  <tr><td>')
+    file.write('    </td><td>'.join(sublist))
+    file.write('  </td></tr>')
+  file.write('</table>')

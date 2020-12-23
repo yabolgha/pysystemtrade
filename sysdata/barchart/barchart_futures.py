@@ -16,6 +16,8 @@ BARCHART_FUTURES_CONFIG_FILE = get_filename_for_package("sysdata.barchart.barcha
 
 
 od = ondemand.OnDemandClient(api_key=load_private_key()) # ondemand API key
+# od = ondemand.OnDemandClient(api_key=load_private_key(), end_point='https://marketdata.websol.barchart.com/') # ondemand demo endpoint API key
+
 # quotes=od.history('GCG19', historical_type = 'daily')['results']
 # pd.DataFrame(quotes)
 
